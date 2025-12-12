@@ -1,1 +1,486 @@
-<html><body><h1>Placeholder Frontend</h1></body></html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WMS Tracer System - Dashboard</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@600&display=swap" rel="stylesheet">
+  <!-- BoxIcons -->
+  <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+  /* ====== (Copy your previous CSS here or keep minimal) ====== */
+  :root{--primary:#2370FF;--primary-dark:#1a5cda;--bg-body:#F4F7FB;--bg-card:#FFFFFF;--text-main:#1E293B;--text-muted:#64748B;--border-color:#E2E8F0;--sidebar-width:260px;--header-height:70px;--radius:12px;--shadow-sm:0 1px 3px rgba(0,0,0,0.08);--transition:all .3s ease}
+  *{box-sizing:border-box}body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:var(--bg-body);color:var(--text-main);margin:0;display:flex;min-height:100vh}
+  /* Sidebar */
+  .sidebar{width:var(--sidebar-width);background:#fff;height:100vh;position:fixed;left:0;top:0;border-right:1px solid var(--border-color);padding-bottom:30px;display:flex;flex-direction:column;z-index:100}
+  .logo-area{height:var(--header-height);display:flex;align-items:center;padding:0 20px;font-weight:700;color:var(--primary)}
+  .sidebar-menu{padding:18px}
+  .menu-label{font-size:12px;color:var(--text-muted);text-transform:uppercase;margin:12px 0 6px}
+  .menu-link{display:flex;align-items:center;padding:10px 14px;border-radius:10px;color:var(--text-muted);cursor:pointer}
+  .menu-link.active{background:#eff6ff;color:var(--primary);position:relative}
+  .menu-link.active::before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);height:36px;width:4px;background:var(--primary);border-radius:0 4px 4px 0}
+  /* Main */
+  .main-content{margin-left:var(--sidebar-width);flex:1;display:flex;flex-direction:column}
+  .top-navbar{height:var(--header-height);display:flex;align-items:center;justify-content:space-between;padding:0 26px;background:var(--bg-card);border-bottom:1px solid var(--border-color)}
+  .page-container{padding:28px}
+  .card{background:var(--bg-card);border-radius:14px;padding:18px;margin-bottom:20px;box-shadow:var(--shadow-sm);border:1px solid var(--border-color)}
+  .btn{padding:8px 14px;border-radius:8px;border:none;cursor:pointer}
+  .btn-primary{background:var(--primary);color:#fff}
+  .form-control{padding:8px 10px;border-radius:8px;border:1px solid var(--border-color);width:100%}
+  .table-responsive{overflow:auto}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:12px;border-bottom:1px solid var(--border-color);text-align:left}
+  .badge{padding:4px 10px;border-radius:16px;font-weight:600}
+  .text-red{color:#ef4444;font-weight:600}.text-green{color:#10b981;font-weight:600}
+  .chart-container{height:300px}
+  /* pages */
+  .page{display:none}.page.active{display:block}
+  /* modal */
+  #upload-modal{display:none;position:fixed;inset:0;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:2000}
+  #upload-modal .modal-card{width:820px;max-width:95%;background:#fff;padding:18px;border-radius:12px}
+  /* responsive */
+  @media(max-width:1024px){.sidebar{transform:translateX(-100%)}.sidebar.show{transform:translateX(0)}.main-content{margin-left:0}}
+  </style>
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="logo-area"><i class='bx bxs-cube-alt' style="margin-right:8px"></i>NexusERP</div>
+    <div class="sidebar-menu">
+      <div class="menu-label">Main</div>
+      <div class="menu-link active" onclick="showPage('dashboard', this)"><i class='bx bxs-dashboard' style="margin-right:10px"></i>Dashboard</div>
+
+      <div class="menu-label">Management</div>
+      <div class="menu-link" onclick="toggleSubmenu('master-data')"><i class='bx bxs-data' style="margin-right:10px"></i>Master Data <i id="icon-master-data" class='bx bx-chevron-down' style="margin-left:auto"></i></div>
+      <div class="submenu" id="submenu-master-data" style="padding-left:12px;display:none">
+        <div class="menu-link" onclick="showPage('customer', this)">Customer</div>
+      </div>
+
+      <div class="menu-link" onclick="toggleSubmenu('transaction')"><i class='bx bxs-collection' style="margin-right:10px"></i>Transaction <i id="icon-transaction" class='bx bx-chevron-down' style="margin-left:auto"></i></div>
+      <div class="submenu" id="submenu-transaction" style="padding-left:12px;display:none">
+        <div class="menu-link" onclick="showPage('workorder', this)">Work Order</div>
+        <div class="menu-link" onclick="showPage('stuffing', this)">Stuffing List</div>
+      </div>
+
+      <div class="menu-label">System</div>
+      <div class="menu-link" onclick="showPage('settings', this)"><i class='bx bxs-cog' style="margin-right:10px"></i>Settings</div>
+      <div class="menu-link" onclick="showPage('profile', this)"><i class='bx bxs-user-circle' style="margin-right:10px"></i>Profile</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <header class="top-navbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <i class='bx bx-menu' style="font-size:22px;cursor:pointer" onclick="toggleSidebar()"></i>
+        <h2 id="page-title-text">Dashboard</h2>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="btn" title="Language"><i class='bx bx-globe'></i></button>
+        <button class="btn" title="Notifications"><i class='bx bx-bell'></i></button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#e8f0ff;color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:700">SM</div>
+          <div style="font-size:12px"><div style="font-weight:700">Shafa</div><div style="color:var(--text-muted);font-size:11px">PPIC</div></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-container">
+      <!-- Dashboard Page -->
+      <div id="page-dashboard" class="page active">
+        <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div>
+            <h3 style="margin:0">Upload Tracer (.txt)</h3>
+            <div style="color:var(--text-muted);font-size:13px;margin-top:6px">Satu tracer per baris. Nama file ideal: contain SO/color/size/qty.</div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn btn-primary" onclick="openUploadModal()"><i class='bx bx-upload'></i> Upload TXT</button>
+            <button class="btn" onclick="showPage('search_tracer', null)"><i class='bx bx-search'></i> Search Tracer</button>
+            <button class="btn" onclick="showPage('search_invoice', null)"><i class='bx bxs-file'></i> Search Invoice</button>
+            <button class="btn" onclick="showPage('search_so', null)"><i class='bx bx-qr'></i> Search SO</button>
+            <button class="btn" onclick="showPage('master_table', null)"><i class='bx bx-table'></i> Master Table</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="margin:0">Quantity by Customer</h3>
+            <button class="btn">Export</button>
+          </div>
+          <div class="chart-container"><canvas id="dashboardChart"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+            <h3 style="margin:0">Last Transactions</h3>
+            <button class="btn">View All</button>
+          </div>
+          <div class="table-responsive">
+            <table>
+              <thead><tr><th>Customer</th><th>Material</th><th>Process</th><th>Time</th><th>Qty</th></tr></thead>
+              <tbody id="transaction-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Search Tracer Page -->
+      <div id="page-search_tracer" class="page">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:center">
+            <input id="search-tracer-input" class="form-control" placeholder="Paste tracer code e.g. 88350924652600009256" style="width:420px" />
+            <button class="btn btn-primary" onclick="searchTracer()">Search</button>
+          </div>
+          <div id="search-tracer-result" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- Search Invoice Page -->
+      <div id="page-search_invoice" class="page">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:center">
+            <input id="search-invoice-input" class="form-control" placeholder="Invoice ID e.g. INV-001" style="width:420px" />
+            <button class="btn btn-primary" onclick="searchInvoice()">Search</button>
+          </div>
+          <div id="search-invoice-result" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- Search SO Page -->
+      <div id="page-search_so" class="page">
+        <div class="card">
+          <div style="display:flex;gap:12px;align-items:center">
+            <input id="search-so-input" class="form-control" placeholder="SO ID e.g. SO12345" style="width:420px" />
+            <button class="btn btn-primary" onclick="searchSo()">Search SO</button>
+          </div>
+          <div id="search-so-result" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- Master Table -->
+      <div id="page-master_table" class="page">
+        <div class="card">
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:12px">
+            <input id="master-filter" class="form-control" placeholder="Filter by SO / color / size / invoice" style="width:320px" />
+            <button class="btn" onclick="loadMasterTable()">Reload</button>
+            <button class="btn" onclick="exportMasterCSV()">Export CSV</button>
+          </div>
+          <div class="table-responsive" style="max-height:520px;overflow:auto">
+            <table id="master-table">
+              <thead><tr><th>SO</th><th>Model</th><th>Color</th><th>Size</th><th>Qty</th><th>Total Tracers</th><th>Invoices</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Other pages (customer, workorder, stuffing, settings, profile) -->
+      <div id="page-customer" class="page"><div class="card"><h3>Customers</h3></div></div>
+      <div id="page-workorder" class="page"><div class="card"><h3>Work Orders</h3></div></div>
+      <div id="page-stuffing" class="page"><div class="card"><h3>Stuffing List</h3></div></div>
+      <div id="page-settings" class="page"><div class="card"><h3>Settings</h3></div></div>
+      <div id="page-profile" class="page"><div class="card"><h3>Profile</h3></div></div>
+    </div>
+  </main>
+
+  <!-- UPLOAD MODAL -->
+  <div id="upload-modal">
+    <div class="modal-card">
+      <h3>Upload Tracer (.txt)</h3>
+      <div style="display:flex;gap:10px;margin-top:8px">
+        <input id="inp-so" class="form-control" placeholder="SO (e.g. SO12345)" />
+        <input id="inp-model" class="form-control" placeholder="Model (optional)" />
+        <input id="inp-color" class="form-control" placeholder="Color (e.g. BLACK TEX)" />
+        <input id="inp-size" class="form-control" placeholder="Size (e.g. 29)" />
+        <input id="inp-qty" class="form-control" placeholder="Qty (optional)" />
+      </div>
+      <div style="margin-top:10px">
+        <input id="file-input" type="file" accept=".txt" />
+      </div>
+      <div style="display:flex;gap:10px;margin-top:12px">
+        <button class="btn btn-primary" onclick="processUpload()">Process & Upload</button>
+        <button class="btn" onclick="closeUploadModal()">Cancel</button>
+      </div>
+      <div id="upload-log" style="margin-top:12px;max-height:180px;overflow:auto;color:var(--text-muted)"></div>
+    </div>
+  </div>
+
+  <!-- Firebase & App Scripts -->
+  <script type="module">
+  // -------------------------
+  // FIREBASE (v9 module imports)
+  // -------------------------
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, writeBatch, getDocs, collection, query, where, orderBy, limit } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+  // =================== REPLACE WITH YOUR FIREBASE CONFIG ====================
+  const firebaseConfig = {
+    apiKey: "REPLACE_API_KEY",
+    authDomain: "REPLACE_AUTH_DOMAIN",
+    projectId: "REPLACE_PROJECT_ID",
+    storageBucket: "REPLACE_STORAGE_BUCKET",
+    messagingSenderId: "REPLACE_MSG_SENDER",
+    appId: "REPLACE_APP_ID"
+  };
+  // ========================================================================
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // -------------------------
+  // UI SPA & Sidebar logic
+  // -------------------------
+  function showPage(pageId, el){
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    const id = 'page-' + pageId;
+    const target = document.getElementById(id);
+    if(target) target.classList.add('active');
+    document.getElementById('page-title-text').innerText = ({
+      dashboard:'Dashboard', search_tracer:'Search Tracer', search_invoice:'Search Invoice', search_so:'Search SO', master_table:'Master Table'
+    })[pageId] || 'Dashboard';
+
+    // active menu
+    document.querySelectorAll('.menu-link').forEach(m=>m.classList.remove('active'));
+    if(el) el.classList.add('active');
+
+    // Page-specific actions
+    if(pageId==='master_table') loadMasterTable();
+    if(pageId==='dashboard') renderTransactions();
+    if(pageId==='search_tracer') document.getElementById('search-tracer-input').focus();
+  }
+  window.showPage = showPage;
+
+  function toggleSubmenu(id){
+    const sub = document.getElementById('submenu-'+id);
+    const icon = document.getElementById('icon-'+id);
+    if(sub.style.display==='block'){ sub.style.display='none'; icon.style.transform='rotate(0deg)'; } else { sub.style.display='block'; icon.style.transform='rotate(-180deg)'; }
+  }
+
+  function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('show'); }
+
+  // -------------------------
+  // Demo transactions (dashboard)
+  // -------------------------
+  const transactions = [
+    { customer: 'LOJEL LTD', material:'Voja PP12-3 Spinner FR 21/S V3 Yolk Yellow', process:'GI Material', time:'2025-12-12, 10:41:32', qty:-8},
+    { customer: 'LOJEL LTD', material:'Voja PP12-3 Spinner FR 21/S V3 Yolk Yellow', process:'TRANSFER Material', time:'2025-12-12, 10:04:08', qty:0},
+    { customer: 'LOJEL LTD', material:'Voja PP12-3 Spinner FR 21/S V3 Yolk Yellow', process:'MOVE SAMPLE', time:'2025-12-11, 11:24:12', qty:-1},
+    { customer: 'TUMI', material:'Zipper', process:'GR FG Material', time:'2025-12-10, 15:31:34', qty:10}
+  ];
+
+  function renderTransactions(){
+    const tbody = document.getElementById('transaction-table-body'); tbody.innerHTML='';
+    transactions.forEach(t=>{
+      const cls = t.qty<0?'text-red':'text-green';
+      tbody.innerHTML += `<tr><td><strong>${t.customer}</strong></td><td>${t.material}</td><td><span class="badge">${t.process}</span></td><td>${t.time}</td><td class="${cls}">${t.qty>0?'+':''}${t.qty}</td></tr>`;
+    });
+  }
+
+  // Dashboard chart
+  document.addEventListener('DOMContentLoaded', ()=> {
+    renderTransactions();
+    const ctx = document.getElementById('dashboardChart').getContext('2d');
+    new Chart(ctx, { type:'bar', data:{ labels:['LOJEL LTD','TUMI'], datasets:[{ data:[7226,64], backgroundColor:['#2370FF','#38BDF8'] }] }, options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} , scales:{x:{ticks:{color:'#64748B'}}, y:{ticks:{color:'#1E293B'}} } } });
+  });
+
+  // -------------------------
+  // Utility: parse filename metadata
+  // -------------------------
+  function parseFilenameMeta(filename){
+    const name = filename.replace(/\.[^/.]+$/, "").toUpperCase();
+    const sizeMatch = name.match(/\b(\d{1,3})\b/);
+    const qtyMatch = name.match(/\bQTY[\s\-:]*(\d{1,6})\b/);
+    const soMatch = name.match(/\b(SO[-\s]?\d+|SO\d+)\b/);
+    let color = null;
+    if(sizeMatch){
+      const idx = name.indexOf(sizeMatch[1]);
+      const before = name.slice(0, idx).replace(/\bQTY\b.*$/,'').trim();
+      const cleaned = before.replace(/^\d+\.*\s*/,'').replace(/\bSO[-\s]?\d+\b/,'').trim();
+      if(cleaned) color = cleaned;
+    }
+    return { so: soMatch?soMatch[0].replace(/\s/g,'') : null, color: color || null, size: sizeMatch?sizeMatch[1]:null, qty: qtyMatch?parseInt(qtyMatch[1],10):null };
+  }
+
+  // -------------------------
+  // Read .txt file
+  // -------------------------
+  async function parseTxtFile(file){ const text = await file.text(); return text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0); }
+
+  // -------------------------
+  // Upload Tracers (Firestore)
+  // -------------------------
+  async function uploadTracers({so,model,color,size,qty,tracers}){
+    const logEl = document.getElementById('upload-log');
+    function log(t){ logEl.innerHTML += `<div>${t}</div>`; logEl.scrollTop = logEl.scrollHeight; }
+
+    if(!so){ log('Error: SO kosong. Isi SO sebelum upload.'); return; }
+    color = color || 'UNKNOWN'; size = size || 'UNKNOWN';
+    const docId = `${so}::${color}::${size}`.replace(/\s+/g,'_');
+    const soItemRef = doc(db,'so_items',docId);
+
+    // read existing
+    let existing = null;
+    try{
+      const snap = await getDoc(soItemRef);
+      if(snap.exists()) existing = snap.data();
+    }catch(e){ log('Gagal baca so_items: '+e.message); }
+
+    const finalQty = qty || (existing && existing.qty) || tracers.length;
+    const soItemPayload = { so, model: model || null, color, size, qty: finalQty, last_update: new Date().toISOString() };
+    if(existing && existing.tracers){
+      const set = new Set(existing.tracers.concat(tracers));
+      soItemPayload.tracers = Array.from(set);
+    } else {
+      soItemPayload.tracers = tracers;
+    }
+
+    // write so_items
+    await setDoc(soItemRef, soItemPayload, { merge:true });
+    log(`so_items upserted: ${docId} (tracers: ${soItemPayload.tracers.length})`);
+
+    // write individual tracers in batches
+    const BATCH_LIMIT = 450;
+    let i=0;
+    while(i<tracers.length){
+      const batch = writeBatch(db);
+      const chunk = tracers.slice(i,i+BATCH_LIMIT);
+      chunk.forEach(code=>{
+        const tRef = doc(db,'tracers',code);
+        batch.set(tRef, { tracer: code, so, color, size, model: model||null, uploaded_at: new Date().toISOString() }, { merge:true });
+      });
+      await batch.commit();
+      log(`Batch commit ${i}..${i+chunk.length-1}`);
+      i += BATCH_LIMIT;
+    }
+    log('Upload selesai ✅');
+  }
+
+  // Process upload binded to modal
+  window.openUploadModal = ()=>{ document.getElementById('upload-modal').style.display = 'flex'; document.getElementById('upload-log').innerHTML=''; }
+  window.closeUploadModal = ()=>{ document.getElementById('upload-modal').style.display = 'none'; document.getElementById('upload-log').innerHTML=''; document.getElementById('file-input').value=''; }
+
+  window.processUpload = async ()=>{
+    const fileEl = document.getElementById('file-input');
+    const file = fileEl.files && fileEl.files[0]; const logEl = document.getElementById('upload-log'); logEl.innerHTML='';
+    function log(t){ logEl.innerHTML += `<div>${t}</div>`; logEl.scrollTop = logEl.scrollHeight; }
+    if(!file){ log('Pilih file .txt dulu'); return; }
+    const parsedMeta = parseFilenameMeta(file.name); log('Parsed filename meta: '+JSON.stringify(parsedMeta));
+    const soField = document.getElementById('inp-so').value.trim();
+    const modelField = document.getElementById('inp-model').value.trim();
+    const colorField = document.getElementById('inp-color').value.trim();
+    const sizeField = document.getElementById('inp-size').value.trim();
+    const qtyField = parseInt(document.getElementById('inp-qty').value.trim())||null;
+
+    const so = soField || parsedMeta.so || null;
+    const model = modelField || parsedMeta.model || null;
+    const color = colorField || parsedMeta.color || 'UNKNOWN';
+    const size = sizeField || parsedMeta.size || null;
+    const qty = qtyField || parsedMeta.qty || null;
+
+    // parse file content
+    const tracers = await parseTxtFile(file);
+    log(`Parsed ${tracers.length} tracer lines from file`);
+    if(qty && tracers.length !== qty) log(`Warning: declared qty ${qty} != tracer count ${tracers.length}. Will still upload.`);
+
+    try{
+      await uploadTracers({so,model,color,size,qty,tracers});
+    }catch(err){ console.error(err); log('Upload error: '+err.message); }
+  };
+
+  // -------------------------
+  // Search functions
+  // -------------------------
+  async function searchTracer(){
+    const code = document.getElementById('search-tracer-input').value.trim();
+    const out = document.getElementById('search-tracer-result'); out.innerHTML='';
+    if(!code){ out.innerHTML='Masukkan tracer code.'; return; }
+    try{
+      const snap = await getDoc(doc(db,'tracers',code));
+      if(!snap.exists()) { out.innerHTML = `<div>Tracer <strong>${code}</strong> not found.</div>`; return; }
+      const data = snap.data();
+      out.innerHTML = `<pre style="white-space:pre-wrap">${JSON.stringify(data,null,2)}</pre>`;
+    }catch(e){ out.innerHTML = 'Error: '+e.message; }
+  }
+
+  async function searchInvoice(){
+    const inv = document.getElementById('search-invoice-input').value.trim();
+    const out = document.getElementById('search-invoice-result'); out.innerHTML='';
+    if(!inv){ out.innerHTML='Masukkan invoice id.'; return; }
+    try{
+      const snap = await getDoc(doc(db,'invoices',inv));
+      if(!snap.exists()){ out.innerHTML = `<div>Invoice <strong>${inv}</strong> not found.</div>`; return; }
+      const data = snap.data();
+      // show summary and list first 200 tracer codes briefly
+      let html = `<div><strong>Invoice:</strong> ${inv}</div><div><strong>Total tracers:</strong> ${ (data.tracers && data.tracers.length) || 'unknown' }</div>`;
+      if(data.tracers && data.tracers.length){
+        html += '<div style="margin-top:8px"><strong>Sample tracers (first 200):</strong><ul>';
+        data.tracers.slice(0,200).forEach(t=> html += `<li style="font-size:12px">${t}</li>`);
+        html += '</ul></div>';
+      }
+      if(data.so_list) html += `<div style="margin-top:6px"><strong>SO list:</strong> ${data.so_list.join(', ')}</div>`;
+      out.innerHTML = html;
+    }catch(e){ out.innerHTML = 'Error: '+e.message; }
+  }
+
+  async function searchSo(){
+    const so = document.getElementById('search-so-input').value.trim();
+    const out = document.getElementById('search-so-result'); out.innerHTML='';
+    if(!so){ out.innerHTML='Masukkan SO id.'; return; }
+    try{
+      // For simplicity query so_items collection for docs starting with SO::
+      const col = collection(db,'so_items');
+      const q = query(col, where('so','==',so), orderBy('size'));
+      const snaps = await getDocs(q);
+      if(snaps.empty){ out.innerHTML = `<div>SO <strong>${so}</strong> not found.</div>`; return; }
+      let html = '';
+      snaps.forEach(snap=>{
+        const d = snap.data();
+        html += `<div style="border-bottom:1px dashed #eee;padding:8px 0"><div><strong>Color:</strong> ${d.color} <strong>Size:</strong> ${d.size} <strong>Qty:</strong> ${d.qty}</div><div style="margin-top:6px"><strong>Tracers:</strong> ${ (d.tracers && d.tracers.length) || 0 }</div></div>`;
+      });
+      out.innerHTML = html;
+    }catch(e){ out.innerHTML = 'Error: '+e.message; }
+  }
+
+  // -------------------------
+  // Master table loader & export
+  // -------------------------
+  async function loadMasterTable(){
+    const tbody = document.querySelector('#master-table tbody'); tbody.innerHTML = '<tr><td>Loading...</td></tr>';
+    try{
+      const col = collection(db,'so_items');
+      // naive: getDocs (for larger dataset use pagination)
+      const snaps = await getDocs(query(col, orderBy('so'), limit(1000)));
+      tbody.innerHTML = '';
+      snaps.forEach(snap=>{
+        const d = snap.data();
+        const invoices = d.invoice_list? d.invoice_list.join(', '): '-';
+        tbody.innerHTML += `<tr><td>${d.so}</td><td>${d.model||'-'}</td><td>${d.color}</td><td>${d.size}</td><td>${d.qty||'-'}</td><td>${(d.tracers && d.tracers.length)||0}</td><td>${invoices}</td></tr>`;
+      });
+    }catch(e){ tbody.innerHTML = `<tr><td>Error: ${e.message}</td></tr>`; }
+  }
+
+  function exportMasterCSV(){
+    const rows = Array.from(document.querySelectorAll('#master-table tbody tr'));
+    if(rows.length===0) return alert('No data');
+    const csv = ['SO,Model,Color,Size,Qty,TotalTracers,Invoices'];
+    rows.forEach(r=>{
+      const cols = Array.from(r.querySelectorAll('td')).map(td=>`"${td.innerText.replace(/"/g,'""')}"`);
+      csv.push(cols.join(','));
+    });
+    const blob = new Blob([csv.join('\n')], {type:'text/csv'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'master_table.csv'; a.click(); URL.revokeObjectURL(a.href);
+  }
+
+  // Expose functions
+  window.searchTracer = searchTracer; window.searchInvoice = searchInvoice; window.searchSo = searchSo;
+  window.loadMasterTable = loadMasterTable; window.exportMasterCSV = exportMasterCSV;
+
+  </script>
+</body>
+</html>
