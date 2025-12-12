@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern WMS Dashboard</title>
+
+    <!-- Fonts: Inter & Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@500;600&display=swap" rel="stylesheet">
+    
+    <!-- Icons: BoxIcons -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    
+    <!-- Chart Library: Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* =========================================
+           1. CSS VARIABLES & RESET
+           ========================================= */
+        :root {
+            --primary: #2370FF;
+            --primary-dark: #1a5cda;
+            --primary-light: #eff6ff;
+            --secondary: #4F46E5;
+            --accent: #38BDF8;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            
+            --bg-body: #F4F7FB;
+            --bg-card: #FFFFFF;
+            --bg-sidebar: #FFFFFF;
+            
+            --text-main: #1E293B;
+            --text-muted: #64748B;
+            --border-color: #E2E8F0;
+            
+            --sidebar-width: 260px;
+            --header-height: 70px;
+            --radius: 12px;
+            --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+        }
+
+        a { text-decoration: none; color: inherit; }
+        ul { list-style: none; }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        /* =========================================
+           2. SIDEBAR
+           ========================================= */
+        .sidebar {
+            width: var(--sidebar-width);
+            background: var(--bg-sidebar);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            z-index: 100;
+            transition: var(--transition);
+        }
+
+        .logo-area {
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            padding: 0 24px;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-icon {
+            font-size: 1.5rem;
+            margin-right: 10px;
+            color: var(--secondary);
+        }
+
+        .sidebar-menu {
+            padding: 20px 12px;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .menu-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin: 0 0 10px 12px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .menu-item {
+            margin-bottom: 4px;
+        }
+
+        .menu-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            border-radius: var(--radius);
+            color: var(--text-muted);
+            font-weight: 500;
+            transition: var(--transition);
+            cursor: pointer;
+            position: relative;
+        }
+
+        .menu-link i {
+            font-size: 1.25rem;
+            margin-right: 12px;
+        }
+
+        .menu-link:hover, .menu-link.active {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .menu-link.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 20px;
+            width: 3px;
+            background-color: var(--primary);
+            border-radius: 0 4px 4px 0;
+        }
+
+        .has-submenu {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .submenu-icon {
+            transition: transform 0.3s;
+        }
+
+        .submenu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding-left: 20px;
+        }
+
+        .submenu.open {
+            max-height: 300px; /* specific enough for transition */
+        }
+
+        .submenu .menu-link {
+            font-size: 0.9rem;
+            padding: 10px 16px;
+        }
+
+        /* =========================================
+           3. MAIN CONTENT AREA
+           ========================================= */
+        .main-content {
+            flex: 1;
+            margin-left: var(--sidebar-width);
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+            width: calc(100% - var(--sidebar-width));
+        }
+
+        /* Top Navbar */
+        .top-navbar {
+            height: var(--header-height);
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            position: sticky;
+            top: 0;
+            z-index: 99;
+        }
+
+        .toggle-btn {
+            display: none; /* Hidden on desktop */
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            margin-right: 16px;
+        }
+
+        .page-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        .navbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .icon-btn {
+            position: relative;
+            background: transparent;
+            border: none;
+            font-size: 1.25rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        .icon-btn:hover { color: var(--primary); }
+
+        .badge-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            background: var(--danger);
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 8px;
+            transition: 0.2s;
+        }
+
+        .user-profile:hover { background: var(--bg-body); }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--primary-light);
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .user-info { display: flex; flex-direction: column; }
+        .user-name { font-size: 0.875rem; font-weight: 600; }
+        .user-role { font-size: 0.75rem; color: var(--text-muted); }
+
+        /* =========================================
+           4. PAGE CONTENT & COMPONENTS
+           ========================================= */
+        .page-container {
+            padding: 32px;
+            flex: 1;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            box-shadow: 0 2px 10px rgba(35, 112, 255, 0.2);
+        }
+        .btn-primary:hover { background-color: var(--primary-dark); }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+
+        /* Tables */
+        .table-responsive {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            white-space: nowrap;
+        }
+
+        th {
+            text-align: left;
+            padding: 16px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            background: #F8FAFC;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        th:first-child { border-top-left-radius: 8px; border-bottom-left-radius: 8px; }
+        th:last-child { border-top-right-radius: 8px; border-bottom-right-radius: 8px; }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.875rem;
+            color: var(--text-main);
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background-color: #F8FAFC; }
+
+        /* Status Badges */
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+        .badge.inbound { background: #DCFCE7; color: #15803D; }
+        .badge.outbound { background: #FEF3C7; color: #B45309; }
+        .badge.production { background: #E0E7FF; color: #4338CA; }
+
+        .text-red { color: var(--danger); font-weight: 600; }
+        .text-green { color: var(--success); font-weight: 600; }
+
+        /* Forms */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; margin-bottom: 8px; font-size: 0.875rem; font-weight: 500; color: var(--text-main); }
+        .form-control {
+            width: 100%;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            background: #fff;
+            transition: 0.2s;
+        }
+        .form-control:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+
+        /* =========================================
+           5. RESPONSIVE DESIGN
+           ========================================= */
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+            .toggle-btn {
+                display: block;
+            }
+            /* Overlay when sidebar opens on mobile */
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.4);
+                z-index: 90;
+            }
+            .overlay.show { display: block; }
+        }
+
+        /* Specific Component Styling (Chart) */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+
+        /* Custom Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .stat-icon {
+            width: 48px; height: 48px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.5rem;
+        }
+        
+        .stat-icon.blue { background: var(--primary-light); color: var(--primary); }
+        .stat-icon.purple { background: #ede9fe; color: var(--secondary); }
+        .stat-icon.green { background: #dcfce7; color: var(--success); }
+
+    </style>
+</head>
+<body>
+
+    <!-- Overlay for Mobile Sidebar -->
+    <div id="overlay" class="overlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="logo-area">
+            <i class='bx bxs-cube-alt logo-icon'></i>
+            <span>NexusERP</span>
+        </div>
+
+        <div class="sidebar-menu">
+            <div class="menu-label">Main</div>
+            <ul class="nav-list">
+                <li class="menu-item">
+                    <a class="menu-link active" onclick="showPage('dashboard', this)">
+                        <i class='bx bxs-dashboard'></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="menu-label" style="margin-top: 20px;">Management</div>
+            <ul class="nav-list">
+                <!-- Master Data Submenu -->
+                <li class="menu-item">
+                    <a class="menu-link has-submenu" onclick="toggleSubmenu('master-data')">
+                        <div style="display:flex; align-items:center;">
+                            <i class='bx bxs-data'></i>
+                            <span>Master Data</span>
+                        </div>
+                        <i class='bx bx-chevron-down submenu-icon' id="icon-master-data"></i>
+                    </a>
+                    <ul class="submenu" id="submenu-master-data">
+                        <li>
+                            <a class="menu-link" onclick="showPage('customer', this)">Customer</a>
+                        </li>
+                    </ul>
+                </li>
+
+                <!-- Transaction Submenu -->
+                <li class="menu-item">
+                    <a class="menu-link has-submenu" onclick="toggleSubmenu('transaction')">
+                        <div style="display:flex; align-items:center;">
+                            <i class='bx bxs-collection'></i>
+                            <span>Transaction</span>
+                        </div>
+                        <i class='bx bx-chevron-down submenu-icon' id="icon-transaction"></i>
+                    </a>
+                    <ul class="submenu" id="submenu-transaction">
+                        <li>
+                            <a class="menu-link" onclick="showPage('workorder', this)">Work Order</a>
+                        </li>
+                        <li>
+                            <a class="menu-link" onclick="showPage('stuffing', this)">Stuffing List</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+
+            <div class="menu-label" style="margin-top: 20px;">System</div>
+            <ul class="nav-list">
+                 <li class="menu-item">
+                    <a class="menu-link" onclick="showPage('settings', this)">
+                        <i class='bx bxs-cog'></i>
+                        <span>Settings</span>
+                    </a>
+                </li>
+                 <li class="menu-item">
+                    <a class="menu-link" onclick="showPage('profile', this)">
+                        <i class='bx bxs-user-circle'></i>
+                        <span>Profile</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        <!-- Top Navbar -->
+        <header class="top-navbar">
+            <div style="display: flex; align-items: center;">
+                <i class='bx bx-menu toggle-btn' onclick="toggleSidebar()"></i>
+                <h1 class="page-title" id="page-title-text">Dashboard</h1>
+            </div>
+
+            <div class="navbar-actions">
+                <button class="icon-btn">
+                    <i class='bx bx-globe'></i>
+                </button>
+                <button class="icon-btn">
+                    <i class='bx bx-bell'></i>
+                    <span class="badge-dot"></span>
+                </button>
+                <div class="user-profile">
+                    <div class="avatar">JS</div>
+                    <div class="user-info">
+                        <span class="user-name">John Smith</span>
+                        <span class="user-role">Manager</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Container -->
+        <div class="page-container">
+
+            <!-- PAGE: DASHBOARD -->
+          <!-- UPLOAD CARD (letakkan di page-dashboard) -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Upload Tracer (.txt)</h3>
+    <button class="btn btn-primary" onclick="openUploadModal()"><i class='bx bx-upload'></i> Upload TXT</button>
+  </div>
+  <p style="color:var(--text-muted); margin-top:8px;">Format file: satu tracer per baris. Nama file idealnya mengandung metadata: "SO-123 BLACK 29 QTY 19.txt" atau isi header dalam UI.</p>
+</div>
+
+<!-- UPLOAD MODAL (bisa ditempatkan di akhir body) -->
+<div id="upload-modal" style="display:none; position:fixed; inset:0; z-index:2000; align-items:center; justify-content:center;">
+  <div style="width:820px; max-width:95%; background:white; border-radius:12px; padding:20px; box-shadow:var(--shadow-md);">
+    <h3>Upload Tracer (.txt)</h3>
+    <p style="color:var(--text-muted);">Isi detail di bawah (jika tidak ada di filename)</p>
+
+    <div style="display:flex; gap:12px; margin-bottom:12px;">
+      <input id="inp-so" class="form-control" placeholder="SO (contoh: SO12345)">
+      <input id="inp-model" class="form-control" placeholder="Model (opsional)">
+      <input id="inp-color" class="form-control" placeholder="Color (ex: Black)">
+      <input id="inp-size" class="form-control" placeholder="Size (ex: 29)">
+      <input id="inp-qty" class="form-control" placeholder="Qty (ex: 19)">
+    </div>
+
+    <input id="file-input" type="file" accept=".txt" />
+    <div style="margin-top:12px; display:flex; gap:8px;">
+      <button class="btn btn-primary" onclick="processUpload()">Process & Upload</button>
+      <button class="btn btn-outline" onclick="closeUploadModal()">Cancel</button>
+    </div>
+
+    <div id="upload-log" style="margin-top:12px; max-height:180px; overflow:auto; font-size:0.9rem; color:var(--text-muted);"></div>
+  </div>
+</div>
+
+            <div id="page-dashboard" class="page active">
+                
+                <!-- Summary Stats (Optional Polish) -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class='bx bxs-package'></i></div>
+                        <div>
+                            <div style="color:var(--text-muted); font-size: 0.8rem;">Total Items</div>
+                            <div style="font-weight: 700; font-size: 1.5rem;">12,450</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple"><i class='bx bxs-truck'></i></div>
+                        <div>
+                            <div style="color:var(--text-muted); font-size: 0.8rem;">Dispatched</div>
+                            <div style="font-weight: 700; font-size: 1.5rem;">452</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class='bx bxs-user'></i></div>
+                        <div>
+                            <div style="color:var(--text-muted); font-size: 0.8rem;">Active Customers</div>
+                            <div style="font-weight: 700; font-size: 1.5rem;">28</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Quantity by Customer</h3>
+                        <button class="btn btn-outline"><i class='bx bx-export'></i> Export</button>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="dashboardChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Last Transaction Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Last Transactions</h3>
+                        <button class="btn btn-outline" style="font-size: 0.8rem;">View All</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Material</th>
+                                    <th>Process</th>
+                                    <th>Time</th>
+                                    <th>Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transaction-table-body">
+                                <!-- JS will populate this -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: CUSTOMER -->
+            <div id="page-customer" class="page">
+                <div class="card">
+                    <div class="card-header">
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" class="form-control" placeholder="Search customer..." style="width: 250px;">
+                        </div>
+                        <button class="btn btn-primary"><i class='bx bx-plus'></i> Add New Customer</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Company Name</th>
+                                    <th>Contact Person</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>CUST-001</td>
+                                    <td><strong>LOJEL LTD</strong></td>
+                                    <td>Michael Chen</td>
+                                    <td>m.chen@lojel.com</td>
+                                    <td><span class="badge" style="background:#DCFCE7; color:#15803D">Active</span></td>
+                                    <td><button class="icon-btn"><i class='bx bx-edit'></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td>CUST-002</td>
+                                    <td><strong>TUMI INC</strong></td>
+                                    <td>Sarah Connor</td>
+                                    <td>sarah@tumi.com</td>
+                                    <td><span class="badge" style="background:#DCFCE7; color:#15803D">Active</span></td>
+                                    <td><button class="icon-btn"><i class='bx bx-edit'></i></button></td>
+                                </tr>
+                                <tr>
+                                    <td>CUST-003</td>
+                                    <td><strong>Samsonite</strong></td>
+                                    <td>John Doe</td>
+                                    <td>j.doe@samsonite.com</td>
+                                    <td><span class="badge" style="background:#FEF3C7; color:#B45309">Pending</span></td>
+                                    <td><button class="icon-btn"><i class='bx bx-edit'></i></button></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: WORK ORDER -->
+            <div id="page-workorder" class="page">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 24px;">
+                    <!-- Create Form -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Create Work Order</h3>
+                        </div>
+                        <form onsubmit="event.preventDefault(); alert('Order Created!');">
+                            <div class="form-group">
+                                <label class="form-label">Order Type</label>
+                                <select class="form-control">
+                                    <option>Inbound</option>
+                                    <option>Outbound</option>
+                                    <option>Production</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Reference No.</label>
+                                <input type="text" class="form-control" placeholder="PO-2023-XXXX">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Due Date</label>
+                                <input type="date" class="form-control">
+                            </div>
+                            <button class="btn btn-primary" style="width: 100%;">Create Order</button>
+                        </form>
+                    </div>
+
+                    <!-- List -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">Recent Work Orders</h3>
+                        </div>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>WO Number</th>
+                                        <th>Type</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>WO-8821</td>
+                                        <td>Inbound</td>
+                                        <td>Oct 24, 2023</td>
+                                        <td><span class="badge inbound">Completed</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>WO-8822</td>
+                                        <td>Production</td>
+                                        <td>Oct 25, 2023</td>
+                                        <td><span class="badge production">In Progress</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>WO-8823</td>
+                                        <td>Outbound</td>
+                                        <td>Oct 26, 2023</td>
+                                        <td><span class="badge outbound">Pending</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: STUFFING LIST -->
+            <div id="page-stuffing" class="page">
+                <div class="card">
+                    <div class="card-header" style="flex-wrap: wrap; gap: 10px;">
+                        <h3 class="card-title">Stuffing List</h3>
+                        <div style="display: flex; gap: 10px; margin-left: auto;">
+                            <input type="date" class="form-control">
+                            <input type="text" class="form-control" placeholder="Container No.">
+                            <button class="btn btn-primary">Filter</button>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Container No.</th>
+                                    <th>Seal No.</th>
+                                    <th>Destination</th>
+                                    <th>Load Date</th>
+                                    <th>Items</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>CNTU-482910</td>
+                                    <td>SL-9921</td>
+                                    <td>New York, USA</td>
+                                    <td>2023-10-22</td>
+                                    <td>450 pcs</td>
+                                    <td><span class="badge outbound">Departed</span></td>
+                                </tr>
+                                <tr>
+                                    <td>MSKU-102938</td>
+                                    <td>SL-9922</td>
+                                    <td>Hamburg, DE</td>
+                                    <td>2023-10-24</td>
+                                    <td>1,200 pcs</td>
+                                    <td><span class="badge inbound">Loading</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PAGE: PLACEHOLDERS -->
+            <div id="page-settings" class="page">
+                <div class="card">
+                    <h3 class="card-title">System Settings</h3>
+                    <p style="margin-top: 10px; color: var(--text-muted);">Configure application preferences here.</p>
+                </div>
+            </div>
+            
+            <div id="page-profile" class="page">
+                <div class="card">
+                    <h3 class="card-title">User Profile</h3>
+                    <p style="margin-top: 10px; color: var(--text-muted);">Manage your account details and password.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // =========================================
+        // 1. NAVIGATION & SPA LOGIC
+        // =========================================
+        
+        function showPage(pageId, element) {
+            // 1. Hide all pages
+            const pages = document.querySelectorAll('.page');
+            pages.forEach(page => page.classList.remove('active'));
+
+            // 2. Show target page
+            const targetPage = document.getElementById('page-' + pageId);
+            if(targetPage) {
+                targetPage.classList.add('active');
+            }
+
+            // 3. Update Title
+            const titles = {
+                'dashboard': 'Dashboard',
+                'customer': 'Master Data / Customer',
+                'workorder': 'Transaction / Work Order',
+                'stuffing': 'Transaction / Stuffing List',
+                'settings': 'Settings',
+                'profile': 'Profile'
+            };
+            document.getElementById('page-title-text').innerText = titles[pageId] || 'Dashboard';
+
+            // 4. Update Sidebar Active State
+            // Only update if clicked from sidebar (element passed)
+            if(element) {
+                // Remove active from all links
+                document.querySelectorAll('.menu-link').forEach(link => link.classList.remove('active'));
+                
+                // Add active to clicked link
+                element.classList.add('active');
+
+                // If inside a submenu, keep parent open (optional, usually handled by toggle)
+            }
+
+            // Close sidebar on mobile after selection
+            if(window.innerWidth <= 1024) {
+                document.getElementById('sidebar').classList.remove('show');
+                document.getElementById('overlay').classList.remove('show');
+            }
+        }
+
+        // =========================================
+        // 2. SIDEBAR LOGIC
+        // =========================================
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            sidebar.classList.toggle('show');
+            overlay.classList.toggle('show');
+        }
+
+        function toggleSubmenu(id) {
+            const submenu = document.getElementById('submenu-' + id);
+            const icon = document.getElementById('icon-' + id);
+            
+            if (submenu.classList.contains('open')) {
+                submenu.classList.remove('open');
+                icon.style.transform = 'rotate(0deg)';
+            } else {
+                submenu.classList.add('open');
+                icon.style.transform = 'rotate(-180deg)';
+            }
+        }
+
+        // =========================================
+        // 3. MOCK DATA & POPULATION
+        // =========================================
+
+        const transactions = [
+            { customer: 'LOJEL LTD', material: 'Polycarbonate Sheet', process: 'Inbound', time: '10:42 AM', qty: 500 },
+            { customer: 'TUMI', material: 'Zipper Mechanism', process: 'Production', time: '09:15 AM', qty: -20 },
+            { customer: 'LOJEL LTD', material: 'Wheel Casters', process: 'Outbound', time: 'Yesterday', qty: -150 },
+            { customer: 'Samsonite', material: 'Handle Bar', process: 'Inbound', time: 'Yesterday', qty: 1200 },
+            { customer: 'TUMI', material: 'Lining Fabric', process: 'Production', time: 'Oct 24', qty: -50 },
+        ];
+
+        function renderTransactions() {
+            const tbody = document.getElementById('transaction-table-body');
+            tbody.innerHTML = '';
+
+            transactions.forEach(t => {
+                let badgeClass = '';
+                if(t.process === 'Inbound') badgeClass = 'inbound';
+                else if(t.process === 'Outbound') badgeClass = 'outbound';
+                else badgeClass = 'production';
+
+                const qtyClass = t.qty < 0 ? 'text-red' : 'text-green';
+
+                const row = `
+                    <tr>
+                        <td><strong>${t.customer}</strong></td>
+                        <td>${t.material}</td>
+                        <td><span class="badge ${badgeClass}">${t.process}</span></td>
+                        <td>${t.time}</td>
+                        <td class="${qtyClass}">${t.qty > 0 ? '+' : ''}${t.qty}</td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+        }
+
+        // =========================================
+        // 4. CHART INITIALIZATION
+        // =========================================
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderTransactions();
+
+            const ctx = document.getElementById('dashboardChart').getContext('2d');
+            
+            // Data from prompt
+            // LOJEL LTD: 7226, TUMI: 64
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['LOJEL LTD', 'TUMI'],
+                    datasets: [{
+                        label: 'Quantity',
+                        data: [7226, 64],
+                        backgroundColor: [
+                            '#2370FF', // Primary
+                            '#38BDF8'  // Accent
+                        ],
+                        borderRadius: 8,
+                        barThickness: 40,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    indexAxis: 'y', // Horizontal Bar Chart
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1E293B',
+                            padding: 12,
+                            titleFont: { family: 'Inter', size: 13 },
+                            bodyFont: { family: 'Inter', size: 13 },
+                            cornerRadius: 8,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { font: { family: 'Inter' }, color: '#64748B' }
+                        },
+                        y: {
+                            grid: { display: false, drawBorder: false },
+                            ticks: { font: { family: 'Inter', weight: '600' }, color: '#1E293B' }
+                        }
+                    },
+                    layout: {
+                        padding: { right: 20 }
+                    }
+                }
+            });
+        });
+
+    </script>
+</body>
+</html>
