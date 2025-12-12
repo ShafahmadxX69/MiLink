@@ -1,1 +1,10 @@
-// placeholder firestore rules
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // For development only: allow read/write from anywhere
+    // WARNING: change to proper auth checks before production
+    match /{document=**} {
+      allow read, write: if request.time < timestamp.date(2030, 1, 1) && request.auth != null;
+    }
+  }
+}
